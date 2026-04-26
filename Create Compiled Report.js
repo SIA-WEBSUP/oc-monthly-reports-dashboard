@@ -317,6 +317,16 @@ function appendEndOfReportsSection_(body, notSubmitted, skipped) {
         .setFontSize(10);
     }
   }
+
+  const generatedAt = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    'yyyy-MM-dd HH:mm:ss z'
+  );
+
+  body.appendParagraph(`Report generated at: ${generatedAt}`)
+    .setFontSize(9)
+    .setItalic(true);
 }
 
 
