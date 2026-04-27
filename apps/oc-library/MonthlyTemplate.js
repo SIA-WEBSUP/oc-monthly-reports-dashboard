@@ -34,28 +34,41 @@ function addBlankTemplateForCurrentMonth() {
   );
 
   const templateStart =
-    findFirstHeading1InTemplate_(
+    findFirstHorizontalLineInTemplate_(
       templateBody
     );
 
   if (!templateStart) {
     throw new Error(
-      'Could not find first HEADING1 in Monthly Template tab.'
+      'Could not find first horizontal line in Monthly Template tab.'
     );
   }
 
+  // Template content starts after the horizontal line
+  const templateContentStart = templateStart.index + 1;
+
+  // Create and insert Month Year heading
+  const monthYearHeading = reportBody.insertParagraph(insertIndex, '');
+  monthYearHeading.setHeading(DocumentApp.ParagraphHeading.HEADING1);
+  const now = new Date();
+  const tz = Session.getScriptTimeZone();
+  const monthYear = Utilities.formatDate(now, tz, 'MMMM yyyy');
+  monthYearHeading.setText(monthYear);
+
+  // Create and insert Title: Name paragraph
+  const titleNamePara = reportBody.insertParagraph(insertIndex + 1, '');
+  titleNamePara.setText(metadata.title && metadata.name ? `${metadata.title}: ${metadata.name}` : '');
+  titleNamePara.setIndentStart(9.36); // 0.13 inches = 9.36 points
+  titleNamePara.editAsText().setItalic(true);
+
+  // Copy template content from after the horizontal line
   const insertedElements =
     copyTemplateSection_(
       templateBody,
-      templateStart.index,
+      templateContentStart,
       reportBody,
-      insertIndex
+      insertIndex + 2
     );
-
-  replaceTemplatePlaceholders_(
-    insertedElements,
-    metadata
-  );
 
   DocumentApp.getUi().alert(
     'New monthly template added successfully.'
@@ -80,9 +93,9 @@ function findTabByName_(doc, tabName) {
 
 
 /**
- * Finds first HEADING1 in Monthly Template tab
+ * Finds first horizontal line in Monthly Template tab
  */
-function findFirstHeading1InTemplate_(body) {
+function findFirstHorizontalLineInTemplate_(body) {
   for (
     let i = 0;
     i < body.getNumChildren();
@@ -92,22 +105,12 @@ function findFirstHeading1InTemplate_(body) {
 
     if (
       child.getType() ===
-      DocumentApp.ElementType.PARAGRAPH
+      DocumentApp.ElementType.HORIZONTAL_RULE
     ) {
-      const paragraph =
-        child.asParagraph();
-
-      if (
-        paragraph.getHeading() ===
-        DocumentApp
-          .ParagraphHeading
-          .HEADING1
-      ) {
-        return {
-          index: i,
-          element: paragraph
-        };
-      }
+      return {
+        index: i,
+        element: child
+      };
     }
   }
 
@@ -313,172 +316,3 @@ function copyTemplateSection_(
   return insertedElements;
 }
 
-
-/**
- * Replace placeholders
- */
-function replaceTemplatePlaceholders_(
-  insertedElements,
-  metadata
-) {
-  const now = new Date();
-  const tz =
-    Session.getScriptTimeZone();
-
-  const replacements = {
-    '{Month}':
-      Utilities.formatDate(
-        now,
-        tz,
-        'MMMM'
-      ),
-
-    '{Year}':
-      Utilities.formatDate(
-        now,
-        tz,
-        'yyyy'
-      )
-  };
-
-  if (metadata.title) {
-    replacements[
-      '{Title}'
-    ] = metadata.title;
-  }
-
-  if (metadata.name) {
-    replacements[
-      '{Name}'
-    ] = metadata.name;
-  }
-
-  insertedElements.forEach(
-    el => {
-      const type =
-        el.getType();
-
-      if (
-        type ===
-          DocumentApp
-            .ElementType
-            .PARAGRAPH ||
-        type ===
-          DocumentApp
-            .ElementType
-            .LIST_ITEM
-      ) {
-        const text =
-          el.editAsText();
-
-        Object.entries(
-          replacements
-        ).forEach(
-          ([
-            findText,
-            replaceText
-          ]) => {
-            text.replaceText(
-              escapeRegex_(
-                findText
-              ),
-              replaceText
-            );
-          }
-        );
-      }
-
-      if (
-        type ===
-        DocumentApp
-          .ElementType
-          .TABLE
-      ) {
-        replaceTextInTable_(
-          el.asTable(),
-          replacements
-        );
-      }
-    }
-  );
-}
-
-
-/**
- * Replace text inside tables
- */
-function replaceTextInTable_(
-  table,
-  replacements
-) {
-  for (
-    let r = 0;
-    r < table.getNumRows();
-    r++
-  ) {
-    const row =
-      table.getRow(r);
-
-    for (
-      let c = 0;
-      c < row.getNumCells();
-      c++
-    ) {
-      const cell =
-        row.getCell(c);
-
-      for (
-        let i = 0;
-        i <
-        cell.getNumChildren();
-        i++
-      ) {
-        const child =
-          cell.getChild(i);
-
-        if (
-          child.getType() ===
-            DocumentApp
-              .ElementType
-              .PARAGRAPH ||
-          child.getType() ===
-            DocumentApp
-              .ElementType
-              .LIST_ITEM
-        ) {
-          const text =
-            child.editAsText();
-
-          Object.entries(
-            replacements
-          ).forEach(
-            ([
-              findText,
-              replaceText
-            ]) => {
-              text.replaceText(
-                escapeRegex_(
-                  findText
-                ),
-                replaceText
-              );
-            }
-          );
-        }
-      }
-    }
-  }
-}
-
-
-/**
- * Escape regex characters
- */
-function escapeRegex_(
-  text
-) {
-  return text.replace(
-    /[.*+?^${}()|[\]\\]/g,
-    '\\$&'
-  );
-}
