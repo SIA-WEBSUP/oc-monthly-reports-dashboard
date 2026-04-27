@@ -1,0 +1,14 @@
+{
+  "timeZone": "America/New_York",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "ReportDocLib",
+        "libraryId": "1JE4hStZsGvGD7xYv63_ohZKem7zPKYS6Gvf8HLcbBk1PfQLQmXJbrPeK",
+        "version": "1"
+      }
+    ]
+  }
+}
