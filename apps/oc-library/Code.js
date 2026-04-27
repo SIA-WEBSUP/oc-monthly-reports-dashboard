@@ -20,7 +20,6 @@ function onOpenMenu() {
     .addItem('Desc Month, Asc Year', 'sortDescMonthAscYear')
     .addSeparator()
     .addItem('Add Blank Template for Current Month', 'addBlankTemplateForCurrentMonth')
-    .addItem('Debug: List Monthly Template Elements', 'debugMonthlyTemplateElementsFromMenu')
     .addToUi();
 }
 
