@@ -22,6 +22,10 @@ function addBlankTemplateForCurrentMonth() {
   ReportDocLib.addBlankTemplateForCurrentMonth();
 }
 
+function debugMonthlyTemplateElementsFromMenu() {
+  ReportDocLib.debugMonthlyTemplateElementsFromMenu();
+}
+
 function installAccessLogger() {
   ReportDocLib.installAccessLogger();
 }

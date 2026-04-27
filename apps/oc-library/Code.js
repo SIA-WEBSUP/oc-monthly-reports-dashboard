@@ -20,6 +20,7 @@ function onOpenMenu() {
     .addItem('Desc Month, Asc Year', 'sortDescMonthAscYear')
     .addSeparator()
     .addItem('Add Blank Template for Current Month', 'addBlankTemplateForCurrentMonth')
+    .addItem('Debug: List Monthly Template Elements', 'debugMonthlyTemplateElementsFromMenu')
     .addToUi();
 }
 
@@ -37,4 +38,8 @@ function specialSortSections() {
 
 function sortDescMonthAscYear() {
   DocumentApp.getUi().alert('Desc month, asc year sort not implemented yet.');
+}
+
+function debugMonthlyTemplateElementsFromMenu() {
+  debugListMonthlyTemplateElements();
 }
