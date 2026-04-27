@@ -1,6 +1,8 @@
 /**
  * Adds a new monthly report entry at the top of the Report tab
  */
+const TEMPLATE_BEGIN_MARKER = 'TEMPLATE BEGIN';
+
 function addBlankTemplateForCurrentMonth() {
   const doc = DocumentApp.getActiveDocument();
 
@@ -34,17 +36,17 @@ function addBlankTemplateForCurrentMonth() {
   );
 
   const templateStart =
-    findFirstHorizontalLineInTemplate_(
+    findTemplateContentStart_(
       templateBody
     );
 
   if (!templateStart) {
     throw new Error(
-      'Could not find first horizontal line in Monthly Template tab.'
+      `Could not find required marker heading: "${TEMPLATE_BEGIN_MARKER}" in Monthly Template tab.`
     );
   }
 
-  // Template content starts after the horizontal line
+  // Template content starts below the marker line.
   const templateContentStart = templateStart.index + 1;
 
   // Create and insert Month Year heading
@@ -58,17 +60,20 @@ function addBlankTemplateForCurrentMonth() {
   // Create and insert Title: Name paragraph
   const titleNamePara = reportBody.insertParagraph(insertIndex + 1, '');
   titleNamePara.setText(metadata.title && metadata.name ? `${metadata.title}: ${metadata.name}` : '');
-  titleNamePara.setIndentStart(9.36); // 0.13 inches = 9.36 points
-  titleNamePara.editAsText().setItalic(true);
+  titleNamePara.setIndentStart(9.36);       // left indent 0.13 inches
+  titleNamePara.setIndentFirstLine(9.36);  // first line hangs back to margin
+  const titleText = titleNamePara.editAsText();
+  titleText.setItalic(true);
+  titleText.setBold(true);
+  titleText.setForegroundColor('#434343');
 
-  // Copy template content from after the horizontal line
-  const insertedElements =
-    copyTemplateSection_(
-      templateBody,
-      templateContentStart,
-      reportBody,
-      insertIndex + 2
-    );
+  // Copy template content from the detected template start.
+  copyTemplateSection_(
+    templateBody,
+    templateContentStart,
+    reportBody,
+    insertIndex + 2
+  );
 
   DocumentApp.getUi().alert(
     'New monthly template added successfully.'
@@ -93,9 +98,11 @@ function findTabByName_(doc, tabName) {
 
 
 /**
- * Finds first horizontal line in Monthly Template tab
+ * Finds required template marker heading in Monthly Template tab.
+ * The marker must be a HEADING1 line with this text:
+ * TEMPLATE BEGIN --- DO NOT DELETE THIS LINE
  */
-function findFirstHorizontalLineInTemplate_(body) {
+function findTemplateContentStart_(body) {
   for (
     let i = 0;
     i < body.getNumChildren();
@@ -104,8 +111,23 @@ function findFirstHorizontalLineInTemplate_(body) {
     const child = body.getChild(i);
 
     if (
-      child.getType() ===
-      DocumentApp.ElementType.HORIZONTAL_RULE
+      child.getType() !==
+      DocumentApp.ElementType.PARAGRAPH
+    ) {
+      continue;
+    }
+
+    const p = child.asParagraph();
+    const heading = p.getHeading();
+    const text = p
+      .getText()
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toUpperCase();
+
+    if (
+      heading === DocumentApp.ParagraphHeading.HEADING1 &&
+      text.startsWith(TEMPLATE_BEGIN_MARKER)
     ) {
       return {
         index: i,
@@ -314,5 +336,75 @@ function copyTemplateSection_(
   }
 
   return insertedElements;
+}
+
+
+/**
+ * Debug helper: list all elements in Monthly Template tab.
+ */
+function debugListMonthlyTemplateElements() {
+  const doc = DocumentApp.getActiveDocument();
+  const templateTab = findTabByName_(doc, 'Monthly Template');
+
+  if (!templateTab) {
+    DocumentApp.getUi().alert('Monthly Template tab not found.');
+    return;
+  }
+
+  const body = templateTab.asDocumentTab().getBody();
+  const lines = [];
+
+  lines.push('Monthly Template element scan');
+  lines.push(`Total children: ${body.getNumChildren()}`);
+  lines.push('');
+
+  for (let i = 0; i < body.getNumChildren(); i++) {
+    const child = body.getChild(i);
+    const type = child.getType();
+    lines.push(formatTemplateElementLine_(i, child, type));
+  }
+
+  const output = lines.join('\n');
+  Logger.log(output);
+
+  // Alerts can be truncated; show the beginning and log the full output.
+  const preview = output.length > 3500
+    ? `${output.substring(0, 3500)}\n\n...truncated in alert. Check execution logs for full output.`
+    : output;
+
+  DocumentApp.getUi().alert(preview);
+}
+
+
+function formatTemplateElementLine_(index, child, type) {
+  if (type === DocumentApp.ElementType.HORIZONTAL_RULE) {
+    return `[${index}] HORIZONTAL_RULE`;
+  }
+
+  if (type === DocumentApp.ElementType.PARAGRAPH) {
+    const p = child.asParagraph();
+    const text = p.getText().trim();
+    const heading = String(p.getHeading()).replace('ParagraphHeading.', '');
+    const preview = text.length > 80
+      ? `${text.substring(0, 80)}...`
+      : text;
+    return `[${index}] PARAGRAPH heading=${heading} text="${preview}"`;
+  }
+
+  if (type === DocumentApp.ElementType.LIST_ITEM) {
+    const li = child.asListItem();
+    const text = li.getText().trim();
+    const preview = text.length > 80
+      ? `${text.substring(0, 80)}...`
+      : text;
+    return `[${index}] LIST_ITEM level=${li.getNestingLevel()} text="${preview}"`;
+  }
+
+  if (type === DocumentApp.ElementType.TABLE) {
+    const t = child.asTable();
+    return `[${index}] TABLE rows=${t.getNumRows()}`;
+  }
+
+  return `[${index}] ${String(type).replace('ElementType.', '')}`;
 }
 
