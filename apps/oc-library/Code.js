@@ -38,7 +38,3 @@ function specialSortSections() {
 function sortDescMonthAscYear() {
   DocumentApp.getUi().alert('Desc month, asc year sort not implemented yet.');
 }
-
-// function addBlankTemplateForCurrentMonth() {
-//   DocumentApp.getUi().alert('Add blank monthly template not implemented yet.');
-// }
