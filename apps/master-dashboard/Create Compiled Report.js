@@ -134,10 +134,26 @@ function compileMonthlyReport() {
       const position = positionCol >= 0 ? String(row[positionCol]).trim() : '';
       const name = nameCol >= 0 ? String(row[nameCol]).trim() : '';
       const sourceLabel = position || name || `Row ${rowNumber}`;
+      const activeValue = activeCol >= 0
+        ? String(row[activeCol]).trim().toLowerCase()
+        : '';
 
       try {
         if (activeCol >= 0) {
-          const activeValue = String(row[activeCol]).trim().toLowerCase();
+          if (activeValue === 'n/a' || activeValue === 'skip') {
+            missingCount++;
+            notSubmitted.push(sourceLabel);
+
+            debugLog({
+              runId,
+              level: 'INFO',
+              action: 'REPORT_FORCED_MISSING',
+              sourceLabel,
+              comment: `Row ${rowNumber} forced as not submitted because Active is "${activeValue}".`,
+            });
+
+            return;
+          }
 
           if (activeValue && activeValue !== 'yes' && activeValue !== 'true') {
             skippedCount++;
@@ -203,7 +219,6 @@ function compileMonthlyReport() {
         if (!sectionElements.length) {
           missingCount++;
           notSubmitted.push(sourceLabel);
-
           debugLog({
             runId,
             level: 'WARN',
